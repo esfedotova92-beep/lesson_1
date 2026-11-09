@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Игра «Взятка, риск или нормально?»</title>
+<style>
+:root{
+  --blue:#2457d6; --blue-dark:#173a8f; --green:#0f7a4a; --red:#c62828;
+  --amber:#b26a00; --bg:#eef2fb; --card:#fff; --line:#d5dff2; --text:#1e293b;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+.wrap{max-width:820px;margin:0 auto;padding:20px 14px 60px}
+.hero{background:linear-gradient(135deg,#2457d6,#173a8f);color:#fff;border-radius:18px;padding:26px 22px;margin-bottom:18px;text-align:center;box-shadow:0 8px 24px rgba(23,58,143,.18)}
+.hero h1{margin:0 0 8px;font-size:27px}
+.hero p{margin:0;opacity:.92}
+.progress-wrap{background:#ffffff;border:1px solid var(--line);border-radius:999px;height:16px;margin:16px auto 0;max-width:520px;overflow:hidden}
+.progress{height:100%;width:0;background:linear-gradient(90deg,#4ade80,#22c55e);transition:width .3s}
+.progress-label{font-size:13px;margin-top:6px;opacity:.9}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 3px 12px rgba(15,23,42,.06)}
+.badge{display:inline-block;font-size:12px;font-weight:bold;padding:5px 10px;border-radius:999px;background:#e8efff;color:var(--blue-dark);margin-bottom:10px}
+.situation{font-size:18px;font-weight:bold;margin:6px 0 14px}
+.answers{display:grid;gap:10px}
+.answer{display:flex;align-items:center;gap:12px;padding:14px;border-radius:12px;border:2px solid var(--line);background:#f8fafc;cursor:pointer;font-size:16px;font-weight:bold;transition:.15s}
+.answer:hover{transform:translateY(-2px);border-color:var(--blue);background:#eef4ff}
+.answer .icon{font-size:22px}
+.answer.correct{border-color:var(--green);background:#e7f6ee;color:var(--green)}
+.answer.wrong{border-color:var(--red);background:#fdecec;color:var(--red)}
+.answer.disabled{pointer-events:none;opacity:.75}
+.explain{display:none;margin-top:14px;padding:14px;border-radius:12px;font-size:15px}
+.explain.show{display:block}
+.explain.ok{background:#e7f6ee;border:1px solid #b6e2c9}
+.explain.warn{background:#fff7e6;border:1px solid #f0d9a8}
+.explain.bad{background:#fdecec;border:1px solid #f3b8b3}
+.explain b{display:block;margin-bottom:5px}
+.next{margin-top:14px;background:var(--blue);color:#fff;border:0;border-radius:10px;padding:12px 20px;font-size:15px;font-weight:bold;cursor:pointer;display:none}
+.next:hover{filter:brightness(.95)}
+.score{display:flex;justify-content:space-between;align-items:center;font-weight:bold;color:var(--blue-dark);margin-bottom:10px}
+.final{display:none;text-align:center}
+.final h2{color:var(--blue-dark)}
+.final .big{font-size:44px;font-weight:bold;color:var(--blue);margin:8px 0}
+.final p{margin:6px 0}
+.restart{margin-top:14px;background:#eef3ff;color:var(--blue-dark);border:1px solid #c7d7f8;border-radius:10px;padding:12px 18px;font-weight:bold;cursor:pointer}
+.hidden{display:none}
+footer{text-align:center;color:#64748b;font-size:13px;margin-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero">
+  <h1>⚖️ Игра: «Взятка, риск или нормально?»</h1>
+  <p>Научись замечать коррупционные риски в обычных ситуациях</p>
+  <div class="progress-wrap"><div class="progress" id="bar"></div></div>
+  <div class="progress-label" id="progressLabel">Ситуация 1 из 8</div>
+</div>
+
+<div class="card" id="gameCard">
+  <div class="score">
+    <span id="counter">Ситуация 1 / 8</span>
+    <span id="score">Верно: 0</span>
+  </div>
+
+  <div class="badge" id="tag">Бытовая ситуация</div>
+  <div class="situation" id="situation"></div>
+
+  <div class="answers" id="answers"></div>
+
+  <div class="explain" id="explain"></div>
+  <button class="next" id="nextBtn" onclick="next()">Следующая ситуация →</button>
+</div>
+
+<div class="card final" id="finalCard">
+  <h2>Результат игры</h2>
+  <div class="big" id="finalScore">0 / 8</div>
+  <p id="finalText"></p>
+  <p><b>Главное правило:</b> если выгода связана с влиянием на решение, оценку, очередь, доступ или обязанность — это коррупционный риск.</p>
+  <button class="restart" onclick="startGame()">Играть снова</button>
+</div>
+
+<footer>Урок-тренинг «Коррупция рядом: бытовая vs государственная»</footer>
+</div>
+
+<script>
+const questions = [
+  {
+    tag:"Образование",
+    text:"Студент дарит преподавателю дорогой телефон перед экзаменом и просит поставить «хотя бы тройку».",
+    correct:"К",
+    explain:"Это коррупционный риск: подарок связан с ожиданием влияния на оценку. Оценка должна зависеть от знаний и выполненной работы, а не от подарка."
+  },
+  {
+    tag:"Благодарность",
+    text:"После защиты диплома группа дарит научному руководителю цветы и открытку.",
+    correct:"Н",
+    explain:"Обычно это символическая благодарность. Она не является взяткой, если не была условием оценки, не связана с влиянием на решение и не предполагает ответной услуги."
+  },
+  {
+    tag:"ГИБДД",
+    text:"Водитель предлагает инспектору деньги, чтобы не оформляли протокол.",
+    correct:"К",
+    explain:"Это дача взятки. Водитель пытается заменить законную процедуру личной договорённостью и уйти от ответственности."
+  },
+  {
+    tag:"Госуслуги",
+    text:"Сотрудник МФЦ просит 500 рублей, чтобы «быстрее принять документы».",
+    correct:"К",
+    explain:"Это получение взятки или вымогательство. Приём документов должен происходить в установленные сроки и по единым правилам, а не за дополнительную плату."
+  },
+  {
+    tag:"Практика",
+    text:"Родственник помогает попасть на практику «по знакомству», минуя конкурс и собеседование.",
+    correct:"К",
+    explain:"Это коррупционный риск: доступ к месту получают не по объективным критериям, а через личные связи. Другие кандидаты оказываются в неравном положении."
+  },
+  {
+    tag:"Медицина",
+    text:"Врач принимает букет после успешного лечения, не требуя его заранее и не связывая с качеством помощи.",
+    correct:"С",
+    explain:"Это серая зона. Сам по себе символический подарок после лечения может не быть взяткой, но в государственных учреждениях важно учитывать правила, сумму, статус сотрудника и отсутствие ожидания ответной услуги."
+  },
+  {
+    tag:"Образование",
+    text:"Преподаватель советует обратиться к «своему» репетитору за плату, намекая, что это поможет сдать предмет.",
+    correct:"К",
+    explain:"Это конфликт интересов и коррупционный риск. Преподаватель не должен создавать ситуацию, где успех студента зависит от личной финансовой выгоды преподавателя."
+  },
+  {
+    tag:"Служебная информация",
+    text:"Сотрудник использует рабочую базу данных, чтобы узнать адрес бывшего партнёра.",
+    correct:"К",
+    explain:"Это злоупотребление полномочиями. Служебный доступ к данным нельзя использовать в личных целях."
+  }
+];
+
+const options = [
+  {key:"К", label:"Взятка / коррупционный риск", icon:"🚩"},
+  {key:"С", label:"Серая зона — зависит от контекста", icon:"🤔"},
+  {key:"Н", label:"Нормально, если нет влияния на решение", icon:"✅"}
+];
+
+let current = 0;
+let score = 0;
+
+function startGame(){
+  current = 0;
+  score = 0;
+  document.getElementById("finalCard").classList.add("hidden");
+  document.getElementById("gameCard").classList.remove("hidden");
+  render();
+}
+
+function render(){
+  const q = questions[current];
+  document.getElementById("counter").textContent = `Ситуация ${current+1} / ${questions.length}`;
+  document.getElementById("score").textContent = `Верно: ${score}`;
+  document.getElementById("tag").textContent = q.tag;
+  document.getElementById("situation").textContent = q.text;
+  document.getElementById("bar").style.width = `${(current/questions.length)*100}%`;
+  document.getElementById("progressLabel").textContent = `Ситуация ${current+1} из ${questions.length}`;
+
+  document.getElementById("answers").innerHTML = options.map(o=>`
+    <div class="answer" onclick="choose('${o.key}', this)">
+      <span class="icon">${o.icon}</span>
+      <span>${o.label}</span>
+    </div>`).join("");
+
+  const ex = document.getElementById("explain");
+  ex.className = "explain";
+  ex.innerHTML = "";
+  document.getElementById("nextBtn").style.display = "none";
+}
+
+function choose(choice, element){
+  const q = questions[current];
+  const buttons = document.querySelectorAll(".answer");
+  buttons.forEach(b=>b.classList.add("disabled"));
+
+  const isCorrect = choice === q.correct;
+  if(isCorrect){
+    score++;
+    element.classList.add("correct");
+  }else{
+    element.classList.add("wrong");
+    buttons.find ? null : null;
+    document.querySelectorAll(".answer").forEach(b=>{
+      const label=b.textContent.trim();
+      const match=options.find(o=>o.label===label);
+      if(match && match.key===q.correct) b.classList.add("correct");
+    });
+  }
+
+  const ex = document.getElementById("explain");
+  ex.className = "explain show " + (isCorrect ? "ok" : "bad");
+  ex.innerHTML = `<b>${isCorrect ? "Верно!" : "Не совсем."}</b>${q.explain}`;
+
+  document.getElementById("score").textContent = `Верно: ${score}`;
+  document.getElementById("nextBtn").style.display = "inline-block";
+}
+
+function next(){
+  current++;
+  if(current >= questions.length){
+    finish();
+  }else{
+    render();
+  }
+}
+
+function finish(){
+  document.getElementById("gameCard").classList.add("hidden");
+  document.getElementById("finalCard").classList.remove("hidden");
+  document.getElementById("bar").style.width = "100%";
+  document.getElementById("progressLabel").textContent = "Игра завершена";
+
+  document.getElementById("finalScore").textContent = `${score} / ${questions.length}`;
+
+  let text;
+  if(score >= 7){
+    text = "Отлично! Ты хорошо распознаёшь коррупционные риски и умеешь отличать благодарность от попытки повлиять на решение.";
+  }else if(score >= 5){
+    text = "Хороший результат. Обрати внимание на ситуации, где выгода связана с оценкой, очередью, доступом или обязанностью.";
+  }else{
+    text = "Стоит повторить главное: коррупция — это не только деньги. Это любое незаконное использование полномочий ради выгоды.";
+  }
+  document.getElementById("finalText").textContent = text;
+}
+
+startGame();
+</script>
+</body>
+</html>
